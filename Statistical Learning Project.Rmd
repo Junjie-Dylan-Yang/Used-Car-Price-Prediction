@@ -1,0 +1,50 @@
+---
+title: "Statistical Learning Project"
+author: "Hui Wang, Yanping Wang and Junjie Yang"
+date: "10/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 6)
+options(tinytex.verbose = TRUE)
+library(dplyr)
+library(tidyverse)
+library(tidytext)
+library(lubridate)
+library(xml2)
+library(rvest)
+library(stringr)
+library(gutenbergr)   # for the text 
+library(tidyr)   # for separate_rows
+```
+
+# id要留吗
+# drive是啥
+# 有state了还需要region吗
+# 需要model这个变量吗？如果需要的话咋clean model
+# 已经clean：cylinders为cylinders_num
+# 已经clean：round date to day；dataset为一个月的数据
+### NA去掉之后，剩下的empty cell是“ ”，需要把modelclean完之后再一起删掉有“ ”的obs
+
+```{r cars}
+data <-read.csv('/Users/huiwang/Downloads/vehicles.csv')
+head(data)
+```
+
+```{r}
+data$posting_date <- round_date(as.Date(data$posting_date),"day")
+data1 <- data %>%
+  mutate(cylinders_num = as.numeric(gsub("[^0-9]","",cylinders))) %>%
+  select(id,price,year,manufacturer,model,condition,cylinders_num,fuel,odometer,title_status,transmission,drive,size,state,posting_date) %>%
+  na.omit()
+```
+
+```{r}
+data1[2,13]
+```
+
+```{r}
+head(data1)
+describe(data1$state)
+```
