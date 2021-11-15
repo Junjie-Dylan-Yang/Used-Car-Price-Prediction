@@ -19,32 +19,105 @@ library(gutenbergr)   # for the text
 library(tidyr)   # for separate_rows
 ```
 
-# id要留吗
-# drive是啥
-# 有state了还需要region吗
-# 需要model这个变量吗？如果需要的话咋clean model
+# id
+# 暂时去掉了model这个变量，因为不知道咋clean model
+# 有state了，所以去掉了region
 # 已经clean：cylinders为cylinders_num
 # 已经clean：round date to day；dataset为一个月的数据
-### NA去掉之后，剩下的empty cell是“ ”，需要把modelclean完之后再一起删掉有“ ”的obs
+# drive解释
 
 ```{r cars}
-data <-read.csv('/Users/huiwang/Downloads/vehicles.csv')
-head(data)
-```
+# clean data
 
-```{r}
+data <- read.csv('/Users/huiwang/Downloads/vehicles.csv')
+#head(data)
 data$posting_date <- round_date(as.Date(data$posting_date),"day")
 data1 <- data %>%
-  mutate(cylinders_num = as.numeric(gsub("[^0-9]","",cylinders))) %>%
-  select(id,price,year,manufacturer,model,condition,cylinders_num,fuel,odometer,title_status,transmission,drive,size,state,posting_date) %>%
+  mutate(cylinders_N = as.numeric(gsub("[^0-9]","",cylinders))) %>%
+  select(id,price,year,manufacturer,condition,cylinders_N,fuel,odometer,title_status,transmission,drive,size,state,posting_date) %>%
   na.omit()
+#head(data1)
+car <- data1 %>% mutate_all(na_if,"") %>% na.omit()
+head(car)
+nrow(car)
 ```
 
 ```{r}
-data1[2,13]
+# adjust the factors
+
+unique(car$condition)
+unique(car$fuel)
+unique(car$title_status)
+unique(car$transmission)
+unique(car$drive)
+unique(car$size)
+
+car <- car %>% 
+  # condition to condition_N
+  mutate(condition_N = case_when(
+     condition %in% c("new") ~ 1,
+     condition %in% c("like new", "excellent") ~ 2,
+     condition %in% c("good") ~ 3,
+     condition %in% c("fair") ~ 4,
+     condition %in% c("salvage") ~ 5
+  )) %>%
+  # fuel to fuel_N
+  mutate(fuel_N = case_when(
+     fuel %in% c("electric") ~ 1,
+     fuel %in% c("hybrid") ~ 2,
+     fuel %in% c("gas") ~ 3,
+     fuel %in% c("diesel") ~ 4,
+     fuel %in% c("other") ~ 5
+  )) %>%
+    # title_status to title_status_N
+  mutate(title_status_N = case_when(
+     title_status %in% c("clean") ~ 1,
+     title_status %in% c("rebuilt") ~ 2,
+     title_status %in% c("parts only") ~ 3,
+     title_status %in% c("lien") ~ 4,
+     title_status %in% c("salvage", "missing") ~ 5
+  )) %>%
+  # transmission to transmission_N
+   mutate(transmission_N = case_when(
+     transmission %in% c("automatic") ~ 1,
+     transmission %in% c("manual") ~ 2,
+     transmission %in% c("other") ~ 3
+  )) %>%
+  # drive to drive_N
+   mutate(drive_N = case_when(
+     drive %in% c("4wd") ~ 1,
+     drive %in% c("rwd") ~ 2,
+     drive %in% c("fwd") ~ 3
+  )) %>%
+  # size to size_N
+ mutate(size_N = case_when(
+     size %in% c("full-size") ~ 1,
+     size %in% c("mid-size") ~ 2,
+     size %in% c("compact") ~ 3,
+     size %in% c("sub-compact") ~ 4
+  )) %>%
+  select(id,price,year,manufacturer,condition_N,cylinders_N,fuel_N,odometer,title_status_N,transmission_N,drive_N,size_N,state,posting_date)
+
+head(car)
+```
+
+
+```{r}
+#summary(data2)
+#plot(car$price, main = NULL, ylab = NULL)
+car = car[-which(car$price > 100000), ] # remove some outliers
+plot(car$price, main = NULL, ylab = NULL)
 ```
 
 ```{r}
-head(data1)
-describe(data1$state)
+lmod0 <- lm(price~year+condition_N+cylinders_N+fuel_N+odometer+title_status_N+transmission_N+drive_N+size_N, car)
+summary(lmod0)
+```
+
+
+```{r}
+# manufacturer需分组用来做classification
+# 什么标准分组？？
+
+
 ```
