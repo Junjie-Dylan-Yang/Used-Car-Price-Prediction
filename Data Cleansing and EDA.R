@@ -9,7 +9,7 @@ library(doParallel)
 
 #--------------------------------Import Data------------------------------------
 
-data_og <- read.csv('vehicles.csv')
+data_og <- read.csv('/Users/huiwang/Downloads/vehicles.csv')
 
 
 
@@ -128,19 +128,69 @@ summary(data_removena$brand)
 #-----------------------------------EDA-----------------------------------------
 #Do EDA on data_removena
 
-#See avg price for each condition group
-aggregate(data$price, list(data$condition), FUN=mean) 
-aggregate(data_removena$price, list(data_removena$condition), FUN=mean) 
+#See price for each condition group
+library(ggplot2)
+ggplot(data_removena, aes(x=condition, y=price, fill=condition)) + 
+  geom_boxplot() +
+  labs(title="Price of Condition")
+
+#not working
+#aggregate(data$price, list(data$condition), FUN=mean)
+# condition_price = data.frame(aggregate(data_removena$price, list(data_removena$condition), FUN=mean))
+# condition_price$x = round(condition_price$x, digits = 0)
+# names(condition_price) = c("condition", "avg.price")
+# ggplot(condition_price, aes(x=condition, y=avg.price, )) +
+#   geom_point(size=2, shape=23) + 
+#   geom_text(label=condition_price$avg.price) +
+#   labs(title="Avg. Price of Condition", x="Condition", y="Avg.price")
+
 
 #Chart to show insightful distribution
 
-#Price by state
+
+
+#Avg.Price by state
+library(choroplethr)
+library(choroplethrMaps)
+state_avgprice = data.frame(aggregate(data_removena$price, list(data_removena$state), FUN=mean))
+state_avgprice
+# change column name
+names(state_avgprice) = c("region", "value")
+state_avgprice$region
+unique(df_president$region)
+state_avgprice$region = c("alaska","alabama","arkansas","arizona","california","colorado","connecticut",
+                          "district of columbia","delaware","florida","georgia","hawaii","iowa","idaho",
+                          "illinois","indiana","kansas","kentucky","louisiana","massachusetts","maryland",
+                          "maine","michigan","minnesota","missouri","mississippi","montana","north carolina",
+                          "north dakota","nebraska","new hampshire","new jersey","new mexico","nevada",
+                          "new york","ohio","oklahoma","oregon","pennsylvania","rhode island","south carolina",
+                          "south dakota","tennessee","texas","utah","virginia","vermont","washington",
+                          "wisconsin","west virginia","wyoming") 
+# create side-by-side choropleth maps
+state_choropleth(state_avgprice, title  = "Avg.Price of Used Car by State in the US")
+
+
+#count by manufacturer
+ggplot(data_removena, aes(x=manufacturer,color=brand)) +
+  geom_bar(fill="white") +
+  labs(title="Count of Manufacturer")
+
 
 #Price by model
 
+
 #Most common car
+sort(table(data_removena$model), decreasing = TRUE)[1:5]
+sort(table(data_removena$manufacturer), decreasing = TRUE)[1:5]
+sort(table(data_removena$year), decreasing = TRUE)[1:5]
+sort(table(data_removena$drive), decreasing = TRUE)[1:3]
 
 #Which day has the most posting? Which days tend to have more expensive posting?
+sort(table(data_removena$posting_date), decreasing = TRUE)[1:5]
+ggplot(data_removena, aes(x=posting_date,color=brand)) +
+  geom_bar(fill="white") +
+  labs(title="Count of Posting_date by Brand")
+
 
 #common vs luxury distribution?
 
