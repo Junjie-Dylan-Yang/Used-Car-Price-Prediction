@@ -53,7 +53,7 @@ length(which(data$odometer < 50))
 length(which(data$odometer > 300000))
 data = data%>%filter(data$odometer %in% (50:300000))
 
-#Mileage, consider 500k and below.
+
 
 
 #--------------------------Data Cleansing - Handling NA-------------------------
@@ -65,10 +65,45 @@ data[data == ""] <- NA
 
 colSums(is.na(data))
 
+#Apparently, some variables are not missing by random, some column have the missing rate are 
+#as high as 70%
+
+#"cutoff" for missing data is to consider to 50%, if above, del variable and 
+#The "missing-at-random" assumptions needed for multiple imputation don't hold in our case, so NA can't be imputed.
+
+
+
+#install.packages("VIM")
+library(VIM)
+na_plot <- aggr(data, col=c('navyblue','yellow'),
+                    numbers=TRUE, sortVars=TRUE,
+                    labels=names(data), cex.axis=.7,
+                    gap=3, ylab=c("Missing data","Pattern"))
+
+#Drop 'size' because it has over 70% na and 'type' contains similar info.
+#Other columns won't be dropped even with 40% because it might have very high information about the pricing. 
+###!!! In Improvement Session, we can talk about this more, for better data etc!!!
+
+data_remove_size = subset(data,select = -c(size))
+colSums(is.na(data_remove_size))
+
+
+
 str(data)
 
 #If del rows with any NA
-data_removena = data[complete.cases(data), ]
+data_removena = data_remove_size[complete.cases(data_remove_size), ]
+colSums(is.na(data_removena))
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -87,12 +122,15 @@ economy = c('buick', 'chevrolet','chrysler','dodge','fiat','ford','gmc','honda',
 data_removena = data_removena%>%
   mutate(brand = ifelse(data_removena$manufacturer %in% luxury, "luxury","common"))
 
-
-
+summary(data_removena$brand)
 
 
 #-----------------------------------EDA-----------------------------------------
 #Do EDA on data_removena
+
+#See avg price for each condition group
+aggregate(data$price, list(data$condition), FUN=mean) 
+aggregate(data_removena$price, list(data_removena$condition), FUN=mean) 
 
 #Chart to show insightful distribution
 
@@ -148,16 +186,16 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 #Scale numeric variables
 
 #Change categorical variables to correct data types
-data[sapply(data, is.character)] = lapply(data[sapply(data, is.character)], as.factor)
+data_removena[sapply(data_removena, is.character)] = lapply(data_removena[sapply(data_removena, is.character)], as.factor)
 
 
 set.seed(123)
-split = createDataPartition(data$price,p = 0.7,list = FALSE)
-train = data[split,]
+split = createDataPartition(data_removena$price,p = 0.7,list = FALSE)
+train = data_removena[split,]
 
 #test set, which is considered as unseen data, 
 #is saved for the best model after models' performance comparison
-test =  data[-split,]
+test =  data_removena[-split,]
 
 #Validation set
 split_again = createDataPartition(train$Churn,p = 0.7,list = FALSE)
