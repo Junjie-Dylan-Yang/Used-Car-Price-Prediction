@@ -9,7 +9,7 @@ library(doParallel)
 
 #--------------------------------Import Data------------------------------------
 
-data_og <- read.csv('/Users/huiwang/Downloads/vehicles.csv')
+data_og <- read.csv('vehicles.csv')
 
 
 
@@ -97,16 +97,6 @@ colSums(is.na(data_removena))
 
 
 
-
-
-
-
-
-
-
-
-
-
 #--------------------------------feature engineering---------------------------
 
 #Group Brand
@@ -122,17 +112,29 @@ economy = c('buick', 'chevrolet','chrysler','dodge','fiat','ford','gmc','honda',
 data_removena = data_removena%>%
   mutate(brand = ifelse(data_removena$manufacturer %in% luxury, "luxury","common"))
 
-summary(data_removena$brand)
+#summary(data_removena$brand)
 
 
 #-----------------------------------EDA-----------------------------------------
 #Do EDA on data_removena
+
+#Distribution of price
+hist(data_removena$price)
+
+#Distribution among condition
+ggplot(data_removena, aes(condition, fill=condition))+geom_bar(stat = 'count')
+
+#See avg price for each condition group
+aggregate(data$price, list(data$condition), FUN=mean) 
+aggregate(data_removena$price, list(data_removena$condition), FUN=mean) 
 
 #See price for each condition group
 library(ggplot2)
 ggplot(data_removena, aes(x=condition, y=price, fill=condition)) + 
   geom_boxplot() +
   labs(title="Price of Condition")
+
+
 
 #not working
 #aggregate(data$price, list(data$condition), FUN=mean)
@@ -145,9 +147,6 @@ ggplot(data_removena, aes(x=condition, y=price, fill=condition)) +
 #   labs(title="Avg. Price of Condition", x="Condition", y="Avg.price")
 
 
-#Chart to show insightful distribution
-
-
 
 #Avg.Price by state
 library(choroplethr)
@@ -157,7 +156,7 @@ state_avgprice
 # change column name
 names(state_avgprice) = c("region", "value")
 state_avgprice$region
-unique(df_president$region)
+#unique(df_president$region)
 state_avgprice$region = c("alaska","alabama","arkansas","arizona","california","colorado","connecticut",
                           "district of columbia","delaware","florida","georgia","hawaii","iowa","idaho",
                           "illinois","indiana","kansas","kentucky","louisiana","massachusetts","maryland",
@@ -173,7 +172,8 @@ state_choropleth(state_avgprice, title  = "Avg.Price of Used Car by State in the
 #count by manufacturer
 ggplot(data_removena, aes(x=manufacturer,color=brand)) +
   geom_bar(fill="white") +
-  labs(title="Count of Manufacturer")
+  labs(title="Count of Manufacturer")+ 
+  coord_flip()
 
 
 #Price by model
@@ -191,15 +191,13 @@ ggplot(data_removena, aes(x=posting_date,color=brand)) +
   geom_bar(fill="white") +
   labs(title="Count of Posting_date by Brand")
 
+#Price over Odo
 
-#common vs luxury distribution?
-
-#......
-
-
+ggplot(data_removena, aes(x=odometer, y=price))+ 
+  geom_point()
 
 
-
+#Might not need to do it, since we only have 2 continuous variables
 #Multicollinearity 
 source("http://www.sthda.com/upload/rquery_cormat.r")
 
