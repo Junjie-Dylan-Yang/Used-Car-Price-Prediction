@@ -119,10 +119,12 @@ data_removena = data_removena%>%
 #Do EDA on data_removena
 
 #Distribution of price
-hist(data_removena$price)
+hist(data_removena$price) 
 
 #Distribution among condition
-ggplot(data_removena, aes(condition, fill=condition))+geom_bar(stat = 'count')
+ggplot(data_removena, aes(condition, fill=condition)) +
+  geom_bar(stat = 'count') + 
+  labs(title="Count of Condition")
 
 #See avg price for each condition group
 aggregate(data$price, list(data$condition), FUN=mean) 
@@ -133,19 +135,6 @@ library(ggplot2)
 ggplot(data_removena, aes(x=condition, y=price, fill=condition)) + 
   geom_boxplot() +
   labs(title="Price of Condition")
-
-
-
-#not working
-#aggregate(data$price, list(data$condition), FUN=mean)
-# condition_price = data.frame(aggregate(data_removena$price, list(data_removena$condition), FUN=mean))
-# condition_price$x = round(condition_price$x, digits = 0)
-# names(condition_price) = c("condition", "avg.price")
-# ggplot(condition_price, aes(x=condition, y=avg.price, )) +
-#   geom_point(size=2, shape=23) + 
-#   geom_text(label=condition_price$avg.price) +
-#   labs(title="Avg. Price of Condition", x="Condition", y="Avg.price")
-
 
 
 #Avg.Price by state
@@ -191,10 +180,15 @@ ggplot(data_removena, aes(x=posting_date,color=brand)) +
   geom_bar(fill="white") +
   labs(title="Count of Posting_date by Brand")
 
-#Price over Odo
+#Price over Odo by brand
+ggplot(data_removena, aes(x=odometer, y=price, color=brand, shape=brand)) + 
+  geom_point(shape=23) +
+  labs(title="Price over Odometer by Brand")
 
-ggplot(data_removena, aes(x=odometer, y=price))+ 
-  geom_point()
+# ggplot(data_removena, aes(x=odometer, y=price, color=brand, shape=brand)) + 
+#   geom_point(shape=23) + 
+#   geom_smooth(method=lm)
+  
 
 
 #Might not need to do it, since we only have 2 continuous variables
