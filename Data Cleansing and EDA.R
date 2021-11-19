@@ -19,7 +19,10 @@ str(data)
 summary(data)
 
 #Save url for future verification
-data = subset(data_og,select = -c(region_url,county,lat,long, VIN, 
+data <- data_og %>%
+  mutate(cylinders_N = as.numeric(gsub("[^0-9]","",cylinders)))
+
+data = subset(data,select = -c(url,model,region_url,cylinders,county,lat,long, VIN, 
                                   image_url, image_url, description,region))
 
 data$posting_date <- round_date(as.Date(data$posting_date),"day")
@@ -122,6 +125,7 @@ data_removena = data_removena%>%
 hist(data_removena$price) 
 
 #Distribution among condition
+data_removena$condition = factor(data_removena$condition, levels=c("new","like new","excellent","good","fair","salvage"))
 ggplot(data_removena, aes(condition, fill=condition)) +
   geom_bar(stat = 'count') + 
   labs(title="Count of Condition")
@@ -223,7 +227,7 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 
 #--------------------------------Data Prep-------------------------------------
 
-
+head(data_removena)
 
 #Scale numeric variables
 
