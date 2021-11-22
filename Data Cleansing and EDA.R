@@ -227,9 +227,17 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 
 #--------------------------------Data Prep-------------------------------------
 
-head(data_removena)
+data_removena$cylinders_N = as.character(data_removena$cylinders_N)
+
+str(data_removena)
 
 #Scale numeric variables
+data_removena$year = as.numeric(data_removena$year)
+
+data_removena$year = scale(data_removena$year)
+data_removena$odometer = scale(data_removena$odometer)
+
+str(data_removena)
 
 #Change categorical variables to correct data types
 data_removena[sapply(data_removena, is.character)] = lapply(data_removena[sapply(data_removena, is.character)], as.factor)
@@ -244,9 +252,26 @@ train = data_removena[split,]
 test =  data_removena[-split,]
 
 #Validation set
-split_again = createDataPartition(train$Churn,p = 0.7,list = FALSE)
+split_again = createDataPartition(train$price,p = 0.7,list = FALSE)
 
 train1 = train[split_again,]
 validation = train[-split_again,]
+
+
+#--------------------------------Modeling-------------------------------------
+
+#Modeling on train1
+
+
+
+
+
+
+
+
+
+
+
+
 
 
