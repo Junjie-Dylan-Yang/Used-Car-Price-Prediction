@@ -328,6 +328,7 @@ model_logit <- caret::train(brand ~ .,data = new_train,
 summary(model_logit)
 
 print(model_logit)
+#training acc: 0.7758135  
 
 
 #Use the logit model to make prediction 
@@ -335,9 +336,10 @@ predict_logit <- predict(model_logit, newdata = validation_brand)
 
 #Generate Confusion Matrix and F1 Score.
 result_logit <- confusionMatrix(data = predict_logit, reference = validation_brand$brand, mode = "prec_recall")
+
 F1_logit <- result_logit$byClass[7]
-result_logit
-F1_logit
+result_logit #Validation Acc : 0.7404
+F1_logit #F1 0.824902 
 
 
 
@@ -348,13 +350,14 @@ model_lda <- caret::train(brand ~ .,data = new_train, method = "lda",
                           trControl=train_control,
                           verbose = TRUE)
 model_lda
+#training acc: 0.7708944  
 
 predict_lda <- predict(model_lda, newdata = validation_brand)
 
 result_lda <- confusionMatrix(data = predict_lda, reference = validation_brand$brand, mode = "prec_recall")
 F1_lda <- result_lda$byClass[7]
-result_lda
-F1_lda
+result_lda # Validation Acc : 0.7269          
+F1_lda #F1 0.8139829
 
 
 #----------------------Modeling (SVM Linear)------------------------------------
