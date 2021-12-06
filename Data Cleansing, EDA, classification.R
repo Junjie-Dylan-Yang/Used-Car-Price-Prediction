@@ -291,6 +291,118 @@ train1_brand = train_brand[split_again_brand,]
 validation_brand = train_brand[-split_again_brand,]
 
 
+#--------------------------------Modeling for Regression-------------------------------------
+
+#Modeling on train1
+
+# Predict price
+# linear regression: Subset, Ridge, Lasso, Random Forest
+
+class(train1$odometer)
+head(train1)
+library(corrplot)
+
+hist(data_removena$price)
+hist(log(data_removena$price))
+summary(train1)
+lmod <- lm(log(price) ~ year+manufacturer+condition+fuel+odometer+
+             title_status+transmission+drive+type+paint_color+cylinders, data=train1)
+summary(lmod)
+
+# subset selection
+library(leaps)
+formula_lm = formula(lmod)
+lmod_subset = regsubsets(formula_lm, data=train1, method="forward")
+lmod_subset_summary = summary(lmod_subset)
+which.min(lmod_subset_summary$bic)
+which.max(lmod_subset_summary$adjr2)
+par(mfrow = c(1, 2))
+plot(lmod_subset_summary$bic, xlab = "Subset Size", ylab = "BIC", pch = 20, type = "l",
+     main = "BIC")
+points(8,lmod_subset_summary$bic[14],col="red",cex=2,pch=20)
+plot(lmod_subset_summary$adjr2, xlab = "Subset Size", ylab = "Adjusted R2", pch = 20, type = "l",
+     main = "Adjusted R2")
+points(8,lmod_subset_summary$adjr2[19],col="red",cex=2,pch=20)
+coef(lmod_subset, 8)  
+# we drop manufacturer, title_status, transmission, paint_color
+lmod_bic = lm(log(price)~
+                year+
+                condition+
+                fuel+
+                odometer+
+                drive+
+                type+
+                cylinders,data=train1)
+summary(lmod_bic)
+lmod_pred = predict(lmod_bic, validation)
+lmod_rmse = mean((lmod_pred-log(validation$price))^2) %>% sqrt()
+# test rmse in original scale
+lmod_rmse_ori = mean((exp(lmod_pred)-validation$price)^2) %>% sqrt()
+
+
+# create model matrix for Ridge, Lasso and Random Forest
+X_train = model.matrix(log(price) ~ year+manufacturer+condition+fuel+odometer+
+                         title_status+transmission+drive+type+paint_color+cylinders, train1)[ ,-1] # remove intercept
+Y_train = log(train1$price)
+X_validation = model.matrix(log(price) ~ year+manufacturer+condition+fuel+odometer+
+                              title_status+transmission+drive+type+paint_color+cylinders, validation)[ ,-1] # remove intercept
+Y_validation = log(validation$price)
+
+# Ridge
+library(glmnet)
+ridge_cv = cv.glmnet(X_train, Y_train, alpha = 0)
+ridge_lam = ridge_cv$lambda.min
+ridge_mod = glmnet(X_train, Y_train, alpha = 0, lambda = ridge_lam)
+ridge_pred = predict(ridge_mod, s=ridge_lam, newx=X_validation)
+ridge_rmse = mean((ridge_pred-Y_validation)^2) %>% sqrt()
+ridge_rmse_ori = mean((exp(ridge_pred)-validation$price)^2) %>% sqrt()
+
+# Lasso
+lasso_cv = cv.glmnet(X_train, Y_train, alpha = 1)
+lasso_lam = lasso_cv$lambda.min
+lasso_mod = glmnet(X_train, Y_train, alpha = 1, lambda = lasso_lam)
+coef_lasso = coef(lasso_mod) # keep all predictors, same as linear regression
+lasso_pred = predict(lasso_mod, s=lasso_lam, newx=X_validation)
+lasso_rmse = mean((lasso_pred-Y_validation)^2) %>% sqrt()
+lasso_rmse_ori = mean((exp(lasso_pred)-validation$price)^2) %>% sqrt()
+
+
+#Random Forest
+install.packages("randomForest")
+library(randomForest)
+price.rf <- randomForest(log(price) ~ year+manufacturer+condition+fuel+odometer+
+                           title_status+transmission+drive+type+paint_color+cylinders, 
+                         train1,importance=TRUE)
+print(price.rf)
+# Type of random forest: regression
+# Number of trees: 500
+# No. of variables tried at each split: 3
+# 
+# Mean of squared residuals: 0.08321768
+# % Var explained: 88.08
+plot(price.rf)
+
+rfmod_pred=predict(price.rf, newdata=validation)
+rfmod_rmse = mean((rfmod_pred-Y_validation)^2) %>% sqrt()
+rfmod_rmse_ori = mean((exp(rfmod_pred)-validation$price)^2) %>% sqrt()
+
+
+##subset linear, drop manufacturer, title_status, transmission, paint_color
+lmod_rmse # 0.3845
+lmod_rmse_ori # 6682
+##ridge, keep all predictors
+ridge_rmse # 0.3607
+ridge_rmse_ori # 6269
+##lasso, keep all predictors
+lasso_rmse # 0.3572
+lasso_rmse_ori # 6308
+##random forest
+rfmod_rmse # 0.2872
+rfmod_rmse_ori # 4505
+
+
+
+
 
 #--------------------Brand Classification Modeling------------------------------
 
