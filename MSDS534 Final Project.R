@@ -11,18 +11,13 @@ library(doParallel)
 
 data_og <- read.csv('vehicles.csv')
 
-
-
 #--------------------------Data Cleansing - Remove Outliers---------------------
 
 str(data)
 summary(data)
 
 #Save url for future verification
-data <- data_og %>%
-  mutate(cylinders_N = as.numeric(gsub("[^0-9]","",cylinders)))
-
-data = subset(data,select = -c(url,model,region_url,cylinders,county,lat,long, VIN, 
+data = subset(data_og,select = -c(url,model,region_url,county,lat,long, VIN, 
                                   image_url, image_url, description,region))
 
 data$posting_date <- round_date(as.Date(data$posting_date),"day")
@@ -57,8 +52,6 @@ length(which(data$odometer > 300000))
 data = data%>%filter(data$odometer %in% (50:300000))
 
 
-
-
 #--------------------------Data Cleansing - Handling NA-------------------------
 
 #All Entries are unique
@@ -75,7 +68,6 @@ colSums(is.na(data))
 #The "missing-at-random" assumptions needed for multiple imputation don't hold in our case, so NA can't be imputed.
 
 
-
 #install.packages("VIM")
 library(VIM)
 na_plot <- aggr(data, col=c('navyblue','yellow'),
@@ -90,14 +82,11 @@ na_plot <- aggr(data, col=c('navyblue','yellow'),
 data_remove_size = subset(data,select = -c(size))
 colSums(is.na(data_remove_size))
 
-
-
 str(data)
 
 #If del rows with any NA
 data_removena = data_remove_size[complete.cases(data_remove_size), ]
 colSums(is.na(data_removena))
-
 
 
 #--------------------------------feature engineering---------------------------
@@ -110,7 +99,6 @@ luxury = c('acura','alfa-romeo','aston-martin', 'audi', 'bmw','cadillac','ferrar
            'porsche','rover','tesla','volvo')
 economy = c('buick', 'chevrolet','chrysler','dodge','fiat','ford','gmc','honda','hyundai','jeep','kia',
             'mazda','mercury','mitsubishi','nissan','pontiac','ram','saturn','subaru','toyota','volkswagen')
-
 
 data_removena = data_removena%>%
   mutate(brand = ifelse(data_removena$manufacturer %in% luxury, "luxury","common"))
@@ -140,7 +128,6 @@ ggplot(data_removena, aes(x=condition, y=price, fill=condition)) +
   geom_boxplot() +
   labs(title="Price of Condition")
 
-
 #Avg.Price by state
 library(choroplethr)
 library(choroplethrMaps)
@@ -161,16 +148,11 @@ state_avgprice$region = c("alaska","alabama","arkansas","arizona","california","
 # create side-by-side choropleth maps
 state_choropleth(state_avgprice, title  = "Avg.Price of Used Car by State in the US")
 
-
 #count by manufacturer
 ggplot(data_removena, aes(x=manufacturer,color=brand)) +
   geom_bar(fill="white") +
   labs(title="Count of Manufacturer")+ 
   coord_flip()
-
-
-#Price by model
-
 
 #Most common car
 sort(table(data_removena$model), decreasing = TRUE)[1:5]
@@ -189,11 +171,6 @@ ggplot(data_removena, aes(x=odometer, y=price, color=brand, shape=brand)) +
   geom_point(shape=23) +
   labs(title="Price over Odometer by Brand")
 
-# ggplot(data_removena, aes(x=odometer, y=price, color=brand, shape=brand)) + 
-#   geom_point(shape=23) + 
-#   geom_smooth(method=lm)
-  
-
 
 #Might not need to do it, since we only have 2 continuous variables
 #Multicollinearity 
@@ -201,16 +178,7 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 
 
 
-
-
-
-
-
-
-
 #-------------------------Data Prep for Price Prediction------------------------
-
-data_removena$cylinders_N = as.character(data_removena$cylinders_N)
 
 str(data_removena)
 
@@ -242,23 +210,14 @@ train1 = train[split_again,]
 validation = train[-split_again,]
 
 
-
-
 #-------------------------Price Prediction Modeling-----------------------------
 #Modeling on train1
 
 # Predict price
-# linear regression: Subset, Ridge, Lasso
+# linear regression, Subset, Ridge, Lasso, Random Forest, Boosting
 
 class(train1$odometer)
 head(train1)
-library(corrplot)
-# finding correlation between numeric columns and charges
-# numeric.column <- sapply(train1, is.numeric)
-# corr <- cor(train1[, numeric.column]) #, use = 'pairwise.complete.obs'
-# corrplot(corr)
-
-# train1$year = as.factor(train1$year)
 hist(data_removena$price)
 hist(log(data_removena$price))
 summary(train1)
@@ -324,7 +283,7 @@ lasso_rmse = mean((lasso_pred-Y_validation)^2) %>% sqrt()
 lasso_rmse_ori = mean((exp(lasso_pred)-validation$price)^2) %>% sqrt()
 
 
-#Random Forest
+# Random Forest
 install.packages("randomForest")
 library(randomForest)
 price.rf <- randomForest(log(price) ~ year+manufacturer+condition+fuel+odometer+
@@ -348,6 +307,12 @@ rfmod_rmse_test = mean((rfmod_pred_test-log(test$price))^2) %>% sqrt()
 rfmod_rmse_ori_test = mean((exp(rfmod_pred_test)-test$price)^2) %>% sqrt()
 
 
+# Adaboost
+
+
+
+
+
 ##subset linear, drop manufacturer, title_status, transmission, paint_color
 lmod_rmse # 0.3845
 lmod_rmse_ori # 6682
@@ -360,61 +325,6 @@ lasso_rmse_ori # 6308
 ##random forest
 rfmod_rmse # 0.2872
 rfmod_rmse_ori # 4505
-
-
-# Adaboost
-
-
-# validation
-# price.rf <- randomForest(log(price) ~ year+manufacturer+condition+fuel+odometer+
-#                            title_status+transmission+drive+type+paint_color+cylinders, 
-#                          validation,importance=TRUE)
-# print(price.rf)
-# Type of random forest: regression
-# Number of trees: 500
-# No. of variables tried at each split: 3
-# 
-# Mean of squared residuals: 0.09670256    【RMSE：0.31097035228】
-# % Var explained: 86.05
-
-
-
-
-
-
-#### PCR and PLS are not suitable for the data!
-
-# PCR
-# set.seed (1)
-# pcr.fit=pcr(log(price) ~ year+manufacturer+condition+fuel+odometer+
-#               title_status+transmission+drive+type+paint_color+cylinders, 
-#             data=train1, scale=TRUE, validation ="CV")
-# summary (pcr.fit)
-# validationplot(pcr.fit,val.type="MSEP")
-# pcr.pred=predict(pcr.fit, X_validation, ncomp =25)
-# sqrt(mean((as.numeric(pcr.pred)-Y_validation)^2))
-# pcr.pred=predict(pcr.fit, X_validation, ncomp =18)
-# mean((as.numeric(pcr.pred)-Y_validation)^2)%>% sqrt()
-# pcr.pred=predict(pcr.fit, X_validation, ncomp =1) # smallest model, not so large rmse
-# mean((as.numeric(pcr.pred)-Y_validation)^2)%>% sqrt()
-# print("test rmse in original scale")
-# mean((exp(as.numeric(pcr.pred))-validation$price)^2)%>% sqrt()
-# 
-# pcr.pred=predict(pcr.fit, X_validation, ncomp =2)
-# mean((as.numeric(pcr.pred)-Y_validation)^2)%>% sqrt()
-# 
-# PLS
-# 
-# set.seed (1)
-# pls.fit=plsr(log(shares)~.-ranks, data=df_train, scale=TRUE, validation ="CV")
-# summary(pls.fit)
-# pls.pred=predict(pls.fit, X_test, ncomp =15)  # smallest error
-# mean((pls.pred -Y_test)^2)%>% sqrt()
-# print("test rmse in original scale")
-# mean((exp(pls.pred) - df_test$shares)^2)%>% sqrt()
-# pls.pred=predict(pls.fit, X_test, ncomp =24)
-# mean((pls.pred -Y_test)^2)%>% sqrt()
-
 
 
 
