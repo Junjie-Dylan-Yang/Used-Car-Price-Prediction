@@ -6,6 +6,8 @@ library(dplyr)
 library(gutenbergr)
 library(parallel)
 library(doParallel)
+library(tree)
+library(gbm)
 
 #--------------------------------Import Data------------------------------------
 
@@ -100,7 +102,7 @@ luxury = c('acura','alfa-romeo','aston-martin', 'audi', 'bmw','cadillac','ferrar
 economy = c('buick', 'chevrolet','chrysler','dodge','fiat','ford','gmc','honda','hyundai','jeep','kia',
             'mazda','mercury','mitsubishi','nissan','pontiac','ram','saturn','subaru','toyota','volkswagen')
 
-data_removena = data_removena%>%
+data_removena = data_removena %>%
   mutate(brand = ifelse(data_removena$manufacturer %in% luxury, "luxury","common"))
 
 #summary(data_removena$brand)
@@ -302,15 +304,28 @@ rfmod_pred=predict(price.rf, newdata=validation)
 rfmod_rmse = mean((rfmod_pred-Y_validation)^2) %>% sqrt()
 rfmod_rmse_ori = mean((exp(rfmod_pred)-validation$price)^2) %>% sqrt()
 
-rfmod_pred_test=predict(price.rf, newdata=test)
-rfmod_rmse_test = mean((rfmod_pred_test-log(test$price))^2) %>% sqrt()
-rfmod_rmse_ori_test = mean((exp(rfmod_pred_test)-test$price)^2) %>% sqrt()
 
+# Boosting
 
-# Adaboost
+gbm.fit <- gbm(
+  formula = log(price) ~ year+manufacturer+condition+fuel+odometer+
+    title_status+transmission+drive+type+paint_color+cylinders,
+  distribution = "gaussian",
+  data = train1,
+  n.trees = 100,
+  interaction.depth = 2,
+  shrinkage = 0.5,
+  cv.folds = 5,
+  n.cores = NULL, # will use all cores by default
+  verbose = FALSE
+)
 
+# print results
+print(gbm.fit)
 
-
+gbm_pred=predict(gbm.fit, newdata=validation)
+gbm_rmse = mean((gbm_pred-Y_validation)^2) %>% sqrt()
+gbm_rmse_ori = mean((exp(gbm_pred)-validation$price)^2) %>% sqrt()
 
 
 ##subset linear, drop manufacturer, title_status, transmission, paint_color
@@ -325,6 +340,14 @@ lasso_rmse_ori # 6308
 ##random forest
 rfmod_rmse # 0.2872
 rfmod_rmse_ori # 4505
+##boosting
+gbm_rmse # 0.3362
+gbm_rmse_ori # 5499
+
+# random forest is the best, so apply it on test set
+rfmod_pred_test=predict(price.rf, newdata=test)
+rfmod_rmse_test = mean((rfmod_pred_test-log(test$price))^2) %>% sqrt()
+rfmod_rmse_ori_test = mean((exp(rfmod_pred_test)-test$price)^2) %>% sqrt()
 
 
 
