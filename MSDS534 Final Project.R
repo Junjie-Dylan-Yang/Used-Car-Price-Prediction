@@ -11,12 +11,12 @@ library(gbm)
 
 #--------------------------------Import Data------------------------------------
 
-data_og <- read.csv('vehicles.csv')
+data_og <- read.csv('/Users/huiwang/Downloads/vehicles.csv')
 
 #--------------------------Data Cleansing - Remove Outliers---------------------
 
-str(data)
-summary(data)
+str(data_og)
+summary(data_og)
 
 #Save url for future verification
 data = subset(data_og,select = -c(url,model,region_url,county,lat,long, VIN, 
@@ -227,6 +227,8 @@ lmod <- lm(log(price) ~ year+manufacturer+condition+fuel+odometer+
              title_status+transmission+drive+type+paint_color+cylinders, data=train1)
 summary(lmod)
 
+#coef(lmod)
+
 # subset selection
 library(leaps)
 formula_lm = formula(lmod)
@@ -258,7 +260,7 @@ lmod_rmse = mean((lmod_pred-log(validation$price))^2) %>% sqrt()
 lmod_rmse_ori = mean((exp(lmod_pred)-validation$price)^2) %>% sqrt()
 
 
-# create model matrix for Ridge, Lasso and Random Forest
+# create model matrix for Ridge, Lasso, Random Forest and Boosting
 X_train = model.matrix(log(price) ~ year+manufacturer+condition+fuel+odometer+
                          title_status+transmission+drive+type+paint_color+cylinders, train1)[ ,-1] # remove intercept
 Y_train = log(train1$price)
@@ -286,7 +288,7 @@ lasso_rmse_ori = mean((exp(lasso_pred)-validation$price)^2) %>% sqrt()
 
 
 # Random Forest
-install.packages("randomForest")
+# install.packages("randomForest")
 library(randomForest)
 price.rf <- randomForest(log(price) ~ year+manufacturer+condition+fuel+odometer+
                            title_status+transmission+drive+type+paint_color+cylinders, 
@@ -312,8 +314,8 @@ gbm.fit <- gbm(
     title_status+transmission+drive+type+paint_color+cylinders,
   distribution = "gaussian",
   data = train1,
-  n.trees = 100,
-  interaction.depth = 2,
+  n.trees = 500,
+  interaction.depth = 3,
   shrinkage = 0.5,
   cv.folds = 5,
   n.cores = NULL, # will use all cores by default
@@ -323,7 +325,7 @@ gbm.fit <- gbm(
 # print results
 print(gbm.fit)
 
-gbm_pred=predict(gbm.fit, newdata=validation)
+gbm_pred = predict(gbm.fit, newdata=validation)
 gbm_rmse = mean((gbm_pred-Y_validation)^2) %>% sqrt()
 gbm_rmse_ori = mean((exp(gbm_pred)-validation$price)^2) %>% sqrt()
 
@@ -341,13 +343,17 @@ lasso_rmse_ori # 6308
 rfmod_rmse # 0.2872
 rfmod_rmse_ori # 4505
 ##boosting
-gbm_rmse # 0.3362
-gbm_rmse_ori # 5499
+gbm_rmse # 0.3172
+gbm_rmse_ori # 5053
 
 # random forest is the best, so apply it on test set
 rfmod_pred_test=predict(price.rf, newdata=test)
 rfmod_rmse_test = mean((rfmod_pred_test-log(test$price))^2) %>% sqrt()
 rfmod_rmse_ori_test = mean((exp(rfmod_pred_test)-test$price)^2) %>% sqrt()
+
+importance(price.rf, type = 1)
+
+varImpPlot(price.rf, main="Variable Importance Plots of Random Forest in Regression")
 
 
 
